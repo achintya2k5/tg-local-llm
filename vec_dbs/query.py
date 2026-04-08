@@ -1,0 +1,28 @@
+import numpy as np
+def query_vector_store(query, model, index, chunks, top_k=3, distance_threshold=None):
+    """
+    Perform semantic search using a query string.
+
+    Parameters:
+    - query (str): The search query.
+    - model (SentenceTransformer): The embedding model.
+    - index (faiss.Index): The FAISS index.
+    - chunks (List[str]): The list of text chunks.
+    - top_k (int): Number of top results to return.
+    - distance_threshold (float or None): Optional max L2 distance to filter results.
+
+    Returns:
+    - List[Tuple[str, float]]: List of (text_chunk, distance) tuples sorted by relevance.
+    """
+    query_embedding = model.encode([query])
+    D, I = index.search(np.array(query_embedding).astype("float32"), k=top_k)
+
+    results = []
+    for idx, dist in zip(I[0], D[0]):
+        if idx == -1:
+            continue
+        if distance_threshold is None or dist < distance_threshold:
+            results.append((chunks[idx], dist))
+
+    results = sorted(results, key=lambda x: x[1])
+    return results
